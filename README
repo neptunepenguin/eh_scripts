@@ -1,0 +1,57 @@
+README for EH scripts
+
+* Introduction
+
+Here you can find some userscripts that I use when browsing the EH websites.
+The vast majority of the scripts are my own work, yet where code was copied
+from another script this is acknowledged in the script text.
+
+All code is licensed under GNU GPL version 3 or later.  Therefore, every piece
+of copied code come from scripts that are distributed under a GPL compatible
+license.  See the end of this file and the COPYING file for copying conditions.
+
+* Using a userscript
+
+To run the userscripts found here you will need a mozilla browser (e.g.
+IceCat/IceWeasel, that can be found here: http://www.gnu.org/software/icecat/)
+with the greasemonkey add-on (http://www.greasespot.net/).  The scripts run
+smoothly on Mozilla Firefox (http://www.mozilla.org/firefox) and greasemonkey
+as well.
+
+Look in the documentation of the greasemonkey project on how you can install
+the scripts: http://wiki.greasespot.net/Greasemonkey_Manual:Installing_Scripts
+
+The scripts often run on Google Chrome with the greasemetal add-on or natively
+in recent versions of Google Chrome.  Yet, Google Chrome is not Free Software
+and it also invades your privacy.  Therefore, you shall refrain from using
+Google Chrome.
+
+The scripts will likely break Microsoft's Internet Explorer.
+
+* Documentation
+
+This repository holds scripts for many purposes, therefore you shall look into
+the README file in the same directory as the script for information about the
+it.  On the other hand, the majority of scripts serve a single purpose and the
+description of the script itself (under the @description tag) is all that's
+needed to understand what the script performs.
+
+* Copying
+
+Copyright (C) 2013 Aquamarine Penguin
+
+This file is part of EH scripts repository.
+
+All scripts in this repository are free software; you can redistribute and/or
+modify all or some of the scripts under the terms of the GNU General Public
+License as published by the Free Software Foundation; either version 3 of the
+License, or (at your option) any later version.
+
+The scripts in this repository are distributed in the hope that they will be
+useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+Public License for more details.
+
+The COPYING file contains a copy of the GNU General Public License.  If you
+cannot find this file, see <http://www.gnu.org/licenses/>.
+
