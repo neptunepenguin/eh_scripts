@@ -1,0 +1,7 @@
+{ "favsurl" : "http://g.e-hentai.org/favorites.php"
+, "apihost" : "g.e-hentai.org"
+, "api"     : "/api.php"
+, "cookies" : "cookies.json"
+, "tagslog" : "tags.log"
+, "msglog"  : "favspider.log"
+}
