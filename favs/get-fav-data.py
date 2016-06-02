@@ -91,8 +91,8 @@ def get_data(colour=None):
     p = soup.select_one('p[class="ip"]')
     showing = p.get_text()
     dprint('First page total:', showing)
-    match = re.search('of (\d+)$', showing)
-    galleries = match.group(1)
+    match = re.search('of ([,\d]+)$', showing)
+    galleries = re.sub('[^\d]', '', match.group(1))
     dprint('Number of galleries:', galleries)
     pages = int(galleries) // G_PER_PAGE
     dprint('Number of extra pages:', pages)
