@@ -1,0 +1,7 @@
+# format:
+#   domain \t tailmatch \t path \t secure \t expires \t name \t value
+
+.e-hentai.org	FALSE	/	FALSE	0	ipb_member_id	ff
+.e-hentai.org	FALSE	/	FALSE	0	ipb_pass_hash	ffffffff
+.e-hentai.org	FALSE	/	FALSE	0	star	ffffffff
+

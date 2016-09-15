@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+
 level <- function(max_level, base_cost, level_cost, exponent) {
   vec <- seq(0, max_level-1)
   round((vec*level_cost + base_cost)**(1 + exponent*vec))
@@ -18,4 +20,5 @@ list(misc_posting     = c(  20,  5000,   100, 0.0280232009 ) ,
      refined_aura     = c(   4, 25000, 25000, 0            ) )
 
 prices <- lapply(costs, function(x){ level(x[1], x[2], x[3], x[4]) })
+print(prices)
 
