@@ -5,7 +5,7 @@
 import BeautifulSoup as bs
 import urllib2 as ul
 
-URL     = 'http://g.e-hentai.org/tools.php?act=taglist&uid=ffffff'
+URL     = 'https://e-hentai.org/tools.php?act=taglist&uid=ffffff'
 COOKIES = ( "ipb_member_id=ffffff"
           , "ipb_pass_hash=ffffffffffffffffffffffffffffffff"
           )

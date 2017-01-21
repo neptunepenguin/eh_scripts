@@ -2,6 +2,15 @@
 // @name        gallery-size
 // @namespace   EH
 // @description Adds the number of files in each gallery, uses the EH API
+// @include     https://e-hentai.org/
+// @include     https://e-hentai.org/?page=*
+// @include     https://e-hentai.org/*Apply+Filter
+// @include     https://exhentai.org/
+// @include     https://exhentai.org/?page=*
+// @include     https://exhentai.org/*Apply+Filter
+// @include     http://e-hentai.org/
+// @include     http://e-hentai.org/?page=*
+// @include     http://e-hentai.org/*Apply+Filter
 // @include     http://g.e-hentai.org/
 // @include     http://g.e-hentai.org/?page=*
 // @include     http://g.e-hentai.org/*Apply+Filter

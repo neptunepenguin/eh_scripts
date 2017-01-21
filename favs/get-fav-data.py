@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup as bs
 
 G_PER_PAGE = 50
 SLEEP = 6
-URL = 'http://g.e-hentai.org/favorites.php'
+URL = 'https://e-hentai.org/favorites.php'
 FAV_CATS = { 'black'  : '0' , 'red'    : '1'
            , 'orange' : '2' , 'yellow' : '3'
            , 'green'  : '4' , 'lime'   : '5'
@@ -58,7 +58,7 @@ def mkreq(url, cookies):
         return html
     req = ur.Request(url)
     req.add_header('User-Agent', 'Mozilla/5.0')
-    req.add_header('Host', 'g.e-hentai.org')
+    req.add_header('Host', 'e-hentai.org')
     req.add_header('Accept', 'text/html,application/xhtml+xml')
     req.add_header('Cookie', cookies)
     page = ur.urlopen(req)

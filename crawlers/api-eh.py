@@ -12,7 +12,7 @@ headers = { "Accept"       : "application/jsonrequest"
           , "Content-type" : "text/json"
           }
 req   = json.dumps(reqpy)
-conn  = httplib.HTTPConnection("g.e-hentai.org")
+conn  = httplib.HTTPConnection("e-hentai.org")
 conn.request("POST", "/api.php", req, headers);
 reply = conn.getresponse()
 data  = reply.read()
