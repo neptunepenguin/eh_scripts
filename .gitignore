@@ -1,0 +1,7 @@
+# vim
+*.swp
+
+# python
+*.pyc
+__pycache__
+
