@@ -492,7 +492,7 @@ def edit_raw_tag(tag, tag_def, group):
     '''
     new_def = tag_def
     # due to URL changes and redirects the domain may be tricky
-    new_t = 'http://e-hentai.org/tools.php?act=taggroup&mastertag=%d' % group
+    new_t = 'https://e-hentai.org/tools.php?act=taggroup&mastertag=%d' % group
     new_def = RAW_MASTER_RE.sub(new_t, new_def)
     new_def = RAW_GROUP_RE.sub(new_t, new_def)
     log.info('tag:%s, mastertag => %d', tag, group)
