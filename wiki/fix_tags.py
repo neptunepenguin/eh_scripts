@@ -80,7 +80,7 @@ __author__ = 'Neptune Penguin'
 __copyright__ = 'Copyright (C) 2017 Aquamarine Penguin'
 __license__ = 'GNU GPLv3 or later'
 __date__ = '2017-08-13'
-__version__ = '0.3'
+__version__ = '0.5'
 
 
 import os, sys, time, re, logging, getopt
@@ -89,14 +89,14 @@ import requests
 from bs4 import BeautifulSoup
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger(__name__)  # don't reuse this name, seriously, don't
 log_levels = { 'silent'       : logging.WARNING,
                'verbose'      : logging.INFO,
                'very-verbose' : logging.DEBUG }
-EH_USERNAME = os.environ.get('EH_USERNAME')
-EH_PASSWORD = os.environ.get('EH_PASSWORD')
-WIKI_USERNAME = os.environ.get('WIKI_USERNAME')
-WIKI_PASSWORD = os.environ.get('WIKI_PASSWORD')
+EH_USERNAME = None
+EH_PASSWORD = None
+WIKI_USERNAME = None
+WIKI_PASSWORD = None
 # It is polite to wait a moment between several requests to the same
 # webserver, this function exists to ensure that we can change the wait time
 # depending on whether we are testing things (and running a handful of
@@ -105,44 +105,19 @@ WIKI_PASSWORD = os.environ.get('WIKI_PASSWORD')
 # different counters for those, and consider POST much more dangerous.
 GET_SLEEP = 0.1
 POST_SLEEP = 1
-if ( EH_USERNAME and EH_PASSWORD and
-     WIKI_USERNAME and WIKI_PASSWORD and
-     len(sys.argv) < 2 ):
-    log.critical(__doc__)
-    sys.exit(1)
-opts, args = getopt.getopt(sys.argv[1:], 'g:p:')
-try:
-    for o, a in opts:
-        if '-g' == o:
-            GET_SLEEP = float(a)
-        elif '-p' == o:
-            POST_SLEEP = float(a)
-        else:
-            raise ValueError('Unknown argument %s' % o)
-except ValueError:
-    log.critical(__doc__)
-    sys.exit(1)
-# it is fine to reconfigure the logger at a later time
-format = '[%(asctime)s:%(levelname)8s:%(lineno)4s] %(message)s'
-try:
-    logging.basicConfig(format=format, level=log_levels[args[0]])
-except KeyError:
-    log.critical(__doc__)
-    sys.exit(1)
-NAMESPACE_LIST = args[1:]
-log.info('NAMESPACE LIST: %s', NAMESPACE_LIST)
+NAMESPACE_LIST = []
 SUMMARY = 'Automated Tag Group Fixes'
 HEADERS = { 'User-Agent' :
-    'Mozilla/5.0 (X13; OpenBSD; rv:13) Gecko/20100101 Firefox/54.0' }
+    'Mozilla/5.0 (X11; Linux; rv:13) Gecko/20100101 Firefox/54.0' }
 EH_LOGIN_DATA = {
-    'UserName' : EH_USERNAME,
-    'PassWord' : EH_PASSWORD,
+    'UserName' : None,
+    'PassWord' : None,
     'x'        : 0,
     'y'        : 0
 }
 WIKI_LOGIN_DATA = {
-    'wpName'         : WIKI_USERNAME,
-    'wpPassword'     : WIKI_PASSWORD,
+    'wpName'         : None,
+    'wpPassword'     : None,
     'wploginattempt' : 'Log in',
     'wpEditToken'    : None,
     'authAction'     : 'login',
@@ -274,11 +249,15 @@ def auth_forums(session):
     r = session.get(url, headers=HEADERS)
     log.debug('HTTP %d', r.status_code)
     session_cookie = session.cookies.get('ipb_session_id')
+    soup = BeautifulSoup(r.content, 'html.parser')
+    form = soup.find('form')  # login is the first form
     log.info( 'FORUM login with user %s, password ******, session %s',
               EH_USERNAME, session_cookie )
     time.sleep(GET_SLEEP)
-    url = ( 'https://forums.e-hentai.org/index.php'
-            '?act=Login&CODE=01&CookieDate=1' )
+    # old login url
+    #url = ( 'https://forums.e-hentai.org/index.php'
+    #        '?act=Login&CODE=01&CookieDate=1' )
+    url = form.attrs.get('action')
     log.info('POST %s', url)
     rp = session.post(url, data=EH_LOGIN_DATA, headers=HEADERS)
     log.debug('HTTP %d', rp.status_code)
@@ -608,8 +587,36 @@ def drive_groups(session, groups):
     return session
 
 
-if '__main__' == __name__:
+def serial_execution( eh_username=None, eh_password=None,
+                      wiki_username=None, wiki_password=None ):
+    '''
+    Serially run each step in the order it needs to be executed.  This allows
+    the script to be used as a module, although still needs the globals to be
+    properly setup beforehand.  As a convenience (in case you are reading this
+    directly in the documentation here are the required globals (module level
+    variables):
+
+        EH_USERNAME, EH_PASSWORD, WIKI_USERNAME and WIKI_PASSWORD
+
+    Another option is to pass named options when calling this function.
+
+    The logger settings are left to the caller, the script/module do not
+    overwrite log settings and respect global logger settings.
+    '''
+    global EH_USERNAME, EH_PASSWORD, WIKI_USERNAME, WIKI_PASSWORD
     log.info('Start tag fixes')
+    if eh_username:
+        EH_USERNAME = eh_username
+    if eh_password:
+        EH_PASSWORD = eh_password
+    if wiki_username:
+        WIKI_USERNAME = wiki_username
+    if wiki_password:
+        WIKI_PASSWORD = wiki_password
+    EH_LOGIN_DATA['UserName'] = EH_USERNAME
+    EH_LOGIN_DATA['PassWord'] = EH_PASSWORD
+    WIKI_LOGIN_DATA['wpName'] = WIKI_USERNAME
+    WIKI_LOGIN_DATA['wpPassword'] = WIKI_PASSWORD
     eh_session = requests.Session()
     wiki_session = requests.Session()
     eh_session = auth_forums(eh_session)
@@ -618,4 +625,40 @@ if '__main__' == __name__:
     eh_session, groups = build_group_struct(eh_session)
     wiki_session = drive_groups(wiki_session, groups)
     log.info('Aaand we are done')
+
+
+if '__main__' == __name__:
+    EH_USERNAME = os.environ.get('EH_USERNAME')
+    EH_PASSWORD = os.environ.get('EH_PASSWORD')
+    WIKI_USERNAME = os.environ.get('WIKI_USERNAME')
+    WIKI_PASSWORD = os.environ.get('WIKI_PASSWORD')
+    if ( EH_USERNAME and EH_PASSWORD and
+        WIKI_USERNAME and WIKI_PASSWORD and
+        len(sys.argv) < 2 ):
+        log.critical(__doc__)
+        sys.exit(1)
+    opts, args = getopt.getopt(sys.argv[1:], 'g:p:')
+    try:
+        for o, a in opts:
+            if '-g' == o:
+                GET_SLEEP = float(a)
+            elif '-p' == o:
+                POST_SLEEP = float(a)
+            else:
+                raise ValueError('Unknown argument %s' % o)
+    except ValueError:
+        log.critical(__doc__)
+        sys.exit(1)
+    # it is fine to reconfigure the logger at a later time
+    format = '[%(asctime)s:%(levelname)8s:%(lineno)4s] %(message)s'
+    try:
+        logging.basicConfig(format=format, level=log_levels[args[0]])
+    except (KeyError, IndexError):
+        log.critical(__doc__)
+        sys.exit(1)
+    NAMESPACE_LIST = args[1:]
+    log.info('NAMESPACE LIST: %s', NAMESPACE_LIST)
+    log.info('GET SLEEP: %f', GET_SLEEP)
+    log.info('POST SLEEP: %f', POST_SLEEP)
+    serial_execution()
 
