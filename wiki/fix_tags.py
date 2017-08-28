@@ -79,8 +79,8 @@ given).
 __author__ = 'Neptune Penguin'
 __copyright__ = 'Copyright (C) 2017 Aquamarine Penguin'
 __license__ = 'GNU GPLv3 or later'
-__date__ = '2017-08-13'
-__version__ = '0.5'
+__date__ = '2017-08-27'
+__version__ = '0.6'
 
 
 import os, sys, time, re, logging, getopt
@@ -103,8 +103,8 @@ WIKI_PASSWORD = None
 # requests) or working with hundreds or thousands of requests.
 # We sleep different times for GET and for POST because most webservers have
 # different counters for those, and consider POST much more dangerous.
-GET_SLEEP = 0.1
-POST_SLEEP = 1
+GET_SLEEP = 0.3
+POST_SLEEP = 3
 NAMESPACE_LIST = []
 SUMMARY = 'Automated Tag Group Fixes'
 HEADERS = { 'User-Agent' :
@@ -204,6 +204,41 @@ class DeepDict(object):
         '''
         return 'deep%s' % self._dict
     __repr__ = __str__
+
+
+class ReconnectingSession(requests.Session):
+    '''
+    Some spam detectors will simply drop your connection, without any
+    explanation.  That's fine, we simply reconnect after waiting for a
+    reasonable amount of time.  We use the same sleep time for POST and for
+    the methods in the session because it should be a sensible amount of time.
+    If you are getting a log of warnings from the re-connecting sessions you
+    need to increase the wait.
+    '''
+    def get(self, *args, **kwargs):
+        '''
+        The GET handler, recursively calls itself after a while if it fails on
+        the first try.  There is no limit on the number of tries because if the
+        connection problem is persistent we need to manually investigate.
+        '''
+        try:
+            return super(ReconnectingSession, self).get(*args, **kwargs)
+        except requests.exceptions.ConnectionError as ex:
+            log.warn('Recovering from: %s', ex)
+            time.sleep(POST_SLEEP)
+            return self.get(*args, *kwargs)
+
+    def post(self, *args, **kwargs):
+        '''
+        Handler for POST requests.  Just like the GET handler above, calls
+        itself after a while if the connection went bust.
+        '''
+        try:
+            return super(ReconnectingSession, self).post(*args, **kwargs)
+        except requests.exceptions.ConnectionError as ex:
+            log.warn('Recovering from: %s', ex)
+            time.sleep(POST_SLEEP)
+            return self.post(*args, *kwargs)
 
 
 def build_post_data(dictionary, soup, *args):
@@ -415,6 +450,13 @@ def edit_template(tag, tag_def, female=None, male=None, misc=None):
 
     This entire function is three times the same code duplicated.  Not the most
     elegant solution but makes debugging easy.
+
+    NOTE: There is a discrepancy on how wiki template arguments names are used.
+    In the `ContentTag` template the female namespace tags are injected into
+    the `taggroupid=` argument and the misc groupings into the
+    `misctaggroupid=` argument.  But in the `Artist` template the misc tags are
+    injected into `taggroupod=` therefore we sometimes pass misc tags as
+    "female" into this function.
     '''
     info = 'tag:%s' % tag
     if female and re.search('\n\|taggroupid=', tag_def):
@@ -427,7 +469,7 @@ def edit_template(tag, tag_def, female=None, male=None, misc=None):
         tag_def = re.sub( '\n}}',
                           '\n|taggroupid=%d\n}}' % female,
                           tag_def )
-    if male and re.search('\n|maletaggroupid=', tag_def):
+    if male and re.search('\n\|maletaggroupid=', tag_def):
         info += ', maletaggroupid => %d' % male
         tag_def = re.sub( '\n\|maletaggroupid=\d+',
                           '\n|maletaggroupid=%d' % male,
@@ -437,7 +479,7 @@ def edit_template(tag, tag_def, female=None, male=None, misc=None):
         tag_def = re.sub( '\n}}',
                           '\n|maletaggroupid=%d\n}}' % male,
                           tag_def )
-    if misc and re.search('\n|misctaggroupid=', tag_def):
+    if misc and re.search('\n\|misctaggroupid=', tag_def):
         info += ', misctaggroupid => %d' % misc
         tag_def = re.sub( '\n\|misctaggroupid=\d+',
                           '\n|misctaggroupid=%d' % misc,
@@ -451,6 +493,7 @@ def edit_template(tag, tag_def, female=None, male=None, misc=None):
     return tag_def
 
 
+# due to URL changes and redirects the domain may be tricky
 domain = 'https?\:\/\/[g.e-]+hentai\.org'
 m_body = re.escape('/tools.php?act=taggroup&mastertag=')
 t_body = re.escape('/tools.php?act=taggroup&taggroup=')
@@ -468,12 +511,31 @@ def edit_raw_tag(tag, tag_def, group):
     Attempt changing the `mastertag` link first otherwise we may change what we
     already placed in the definition by changing the `taggroup` parameter into
     the `mastertag` parameter.
+
+    Sometimes we encounter tag groups that have wiki pages and have a tag group
+    and/or master tag, yet the wiki page does not link to the group.  In such a
+    case we try to build a proper definition by adding the link to the bottom
+    of the definition.  The tricky part here is when a definition contain wiki
+    footers (e.g. [[Category:Identifier]]), in which case we need to add the
+    new link before the footers.
     '''
     new_def = tag_def
-    # due to URL changes and redirects the domain may be tricky
     new_t = 'https://e-hentai.org/tools.php?act=taggroup&mastertag=%d' % group
     new_def = RAW_MASTER_RE.sub(new_t, new_def)
     new_def = RAW_GROUP_RE.sub(new_t, new_def)
+    # if we had anything we changed it to the standard format by now
+    if not 'https://e-hentai.org/tools.php?act=taggroup' in new_def:
+        def_list = new_def.split('\n')
+        def_list = list(filter(lambda x: x.strip(), def_list))
+        footers = list(filter(lambda x: '[[Category:' in x, def_list))
+        items = list(filter(lambda x: x not in footers, def_list))
+        new_item = '*[https://e-hentai.org/tools.php?act=taggroup&mastertag='
+        new_item += "%d '''Slave Tags''']" % group
+        items.append(new_item)
+        if footers:
+            items.append('')  # add an empty line to separate from footers
+        footers.append('')
+        new_def = '\n'.join(items + footers)
     log.info('tag:%s, mastertag => %d', tag, group)
     return new_def
 
@@ -523,6 +585,9 @@ def change_tag(session, tag, female=None, male=None, misc=None):
     log.debug('FROM:\n%s', definition)
     if re.search('{{ContentTag', definition):
         new_def = edit_template(tag, definition, female, male, misc)
+    elif re.search('{{Artist', definition):
+        # pass `misc` as `female`, that's how the `{{Artist` template works
+        new_def = edit_template(tag, definition, misc)
     else:
         group = list(dropwhile(lambda x: not x, [misc, female, male]))[0]
         new_def = edit_raw_tag(tag, definition, group)
@@ -617,8 +682,8 @@ def serial_execution( eh_username=None, eh_password=None,
     EH_LOGIN_DATA['PassWord'] = EH_PASSWORD
     WIKI_LOGIN_DATA['wpName'] = WIKI_USERNAME
     WIKI_LOGIN_DATA['wpPassword'] = WIKI_PASSWORD
-    eh_session = requests.Session()
-    wiki_session = requests.Session()
+    eh_session = ReconnectingSession()
+    wiki_session = ReconnectingSession()
     eh_session = auth_forums(eh_session)
     wiki_session = auth_wiki(wiki_session)
     time.sleep(POST_SLEEP)
